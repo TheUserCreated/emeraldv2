@@ -49,7 +49,11 @@ pub async fn add(
         greeting,
     )
     .await?;
-
+    poise::send_application_reply(ctx, |b| {
+        b.content("Successfully added greeting!");
+        b
+    })
+    .await?;
     Ok(())
 }
 

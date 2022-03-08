@@ -23,7 +23,7 @@ pub async fn set_greeting_internal(
     sqlx::query!(
         "INSERT INTO greeting_info (guild_id,channel_id,role_id,greeting,timeout)\
             VALUES ($1,$2,$3,$4,$5)\
-            ON CONFLICT (guild_id) DO UPDATE \
+            ON CONFLICT (ROLE_ID) DO UPDATE \
             SET greeting = $4;",
         guild_id.0 as i64,
         channel_id.0 as i64,
