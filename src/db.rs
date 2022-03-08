@@ -20,7 +20,6 @@ pub async fn set_greeting_internal(
     role_id: RoleId,
     greeting_text: String,
 ) -> Result<(), Error> {
-    println!("about to query!");
     sqlx::query!(
         "INSERT INTO greeting_info (guild_id,channel_id,role_id,greeting,timeout)\
             VALUES ($1,$2,$3,$4,$5)\
@@ -34,7 +33,6 @@ pub async fn set_greeting_internal(
     )
     .execute(pool)
     .await?;
-    println!("did query");
     Ok(())
 }
 

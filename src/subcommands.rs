@@ -35,15 +35,12 @@ pub async fn add(
 ) -> Result<(), Error> {
     let greetdata: GreetingModal = GreetingModal::execute(ctx).await?;
     let greeting = greetdata.greeting_input;
-    println!("got greet input");
 
     let greeting = greeting_replacements(ctx, greeting, role.borrow())
         .await
         .expect("greeting replacement failed!");
-    println!("about to start DB sections of greet add command.");
     let data = ctx.data;
     let pool = &data.pool;
-    print!("acquired pool!");
     set_greeting_internal(
         pool,
         &ctx.interaction.guild_id().unwrap(),
@@ -68,7 +65,6 @@ pub async fn greeting_replacements(
     greeting: String,
     role: &Role,
 ) -> Result<String, Error> {
-    println!("got to greeting replacements section!");
     let interaction_data = ctx.interaction;
     let member = interaction_data.member().unwrap();
     let guild = interaction_data.member().unwrap().guild_id;
