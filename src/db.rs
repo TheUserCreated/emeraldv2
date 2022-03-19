@@ -1,6 +1,8 @@
 use poise::serenity_prelude::{ChannelId, GuildId, RoleId};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 
+use crate::structures::Greeting;
+
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
 pub async fn get_db_pool(db_connection: String) -> Result<(PgPool), Error> {
@@ -57,7 +59,7 @@ pub async fn get_greeting(
     }
     let channel_id = channel_id as u64;
 
-    return Ok((ChannelId::from(channel_id), greeting));
+    Ok((ChannelId::from(channel_id), greeting))
 }
 
 pub async fn remove_greeting_internal(
@@ -77,7 +79,7 @@ pub async fn remove_greeting_internal(
     Ok(())
 }
 
-//NOTE: it seems ill have to re-implement removal functions for all situations that need to trigger a deletion
+//NOTE: it seems i'll have to re-implement removal functions for all situations that need to trigger a deletion
 //      there might be a cleaner way to do this using generics, if i figure that out expect these functions to go bye-bye
 pub async fn remove_greeting_by_channel(
     pool: &PgPool,
@@ -100,4 +102,31 @@ pub async fn remove_greeting_by_role(pool: &PgPool, role_id: &RoleId) -> Result<
     .execute(pool)
     .await?;
     Ok(())
+}
+
+pub async fn get_all_greeting(pool: &PgPool, guild_id: &GuildId) -> Result<Vec<Greeting>, Error> {
+    let cursor = sqlx::query!(
+        "SELECT channel_id, greeting,role_id FROM greeting_info WHERE guild_id = $1 ",
+        guild_id.0 as i64,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut role_id: u64;
+    let mut greeting: String;
+    let mut channel_id: u64;
+    let mut greeting_list: Vec<Greeting> = vec![];
+    for items in cursor {
+        channel_id = items.channel_id as u64;
+        role_id = items.role_id as u64;
+        greeting = items.greeting;
+        let complete_greeting = Greeting {
+            greeting_text: greeting,
+            channel_id_internal: channel_id,
+            role_id_internal: role_id,
+        };
+        greeting_list.push(complete_greeting);
+    }
+
+    Ok(greeting_list)
 }

@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::{collections::HashMap, env, sync::Mutex, time::Duration};
 
 use poise::serenity_prelude as serenity;
@@ -6,8 +7,10 @@ use sqlx::PgPool;
 use tracing::{error, info};
 
 use crate::db::get_db_pool;
+use crate::greeting_handler::greeting_handler;
 
 mod db;
+mod greeting_handler;
 mod structures;
 mod subcommands;
 
@@ -19,6 +22,33 @@ impl TypeMapKey for ConnectionPool {
 
 pub struct Data {
     pool: PgPool,
+}
+
+async fn event_listener(
+    ctx: &serenity::Context,
+    event: &poise::Event<'_>,
+    _framework: &poise::Framework<Data, Error>,
+    _user_data: &Data,
+) -> Result<(), Error> {
+    match event {
+        poise::Event::Ready { data_about_bot } => {
+            println!("{} is connected!", data_about_bot.user.name)
+        }
+        poise::Event::GuildMemberUpdate {
+            old_if_available,
+            new,
+        } => {
+            info!("guild member updated occurred.");
+            greeting_handler(ctx, old_if_available, new, _user_data).await?;
+        }
+        poise::Event::CacheReady { guilds } => {
+            info!("Cache is ready! We are in guilds {:?}", guilds);
+        }
+
+        _ => {}
+    }
+
+    Ok(())
 }
 
 //type CommandResult = Result<(), Error>;
@@ -112,12 +142,23 @@ async fn main() {
                     subcommands: vec![
                         subcommands::add(),
                         subcommands::remove(),
+                        subcommands::list(),
+                        subcommands::replacement(),
                         //parent?
                     ],
                     ..subcommands::greeting()
                 },
             ],
+            listener: |ctx, event, framework, user_data| {
+                Box::pin(event_listener(ctx, event, framework, user_data))
+            },
             ..Default::default()
+        })
+        .client_settings(move |client_builder| {
+            client_builder.intents(
+                serenity::GatewayIntents::non_privileged()
+                    | serenity::GatewayIntents::GUILD_MEMBERS,
+            )
         })
         .run()
         .await
